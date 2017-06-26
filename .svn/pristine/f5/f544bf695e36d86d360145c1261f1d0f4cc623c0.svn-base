@@ -1,0 +1,36 @@
+//
+//  StickerView.m
+//  MyWardrobe
+//
+//  Created by develop1 on 2017/5/23.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "StickerView.h"
+
+@implementation StickerView
+
+- (id)initWithFrame:(CGRect)frame{
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.backgroundColor = [UIColor redColor];
+        [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapGestureAction:)]];
+        [self addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panGestureAction:)]];
+    }
+    return self;
+}
+- (void)tapGestureAction:(UITapGestureRecognizer *)tap{
+    if (self.tapHcaseBlock) {
+        self.tapHcaseBlock(tap);
+    }
+}
+- (void)panGestureAction:(UIPanGestureRecognizer *)pan{
+    if (self.panHcaseBlock) {
+        self.panHcaseBlock(pan);
+    }
+}
+
+
+
+
+@end

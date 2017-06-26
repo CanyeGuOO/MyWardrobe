@@ -1,0 +1,79 @@
+//
+//  StickerView.m
+//  MyWardrobe
+//
+//  Created by develop1 on 2017/5/23.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "StickerView.h"
+
+@interface StickerView ()
+
+@property (nonatomic, strong) UIView *stickerV;
+
+@end
+
+@implementation StickerView
+
+- (id)initWithFrame:(CGRect)frame{
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.backgroundColor = [UIColor redColor];
+        [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapGestureAction:)]];
+        [self addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panGestureAction:)]];
+    }
+    return self;
+}
+#pragma mark -- 懒加载
+-(UIView *)stickerV{
+    if (!_stickerV) {
+        _stickerV = [[UIView alloc] init];
+    }
+    return _stickerV;
+}
+
+
+#pragma maRK -- GestureAction
+- (void)tapGestureAction:(UITapGestureRecognizer *)tap{
+    if (self.tapHcaseBlock) {
+        self.tapHcaseBlock(tap);
+    }
+}
+- (void)panGestureAction:(UIPanGestureRecognizer *)pan{
+    if (self.panHcaseBlock) {
+        self.panHcaseBlock(pan);
+    }
+}
+
+-(void)drawRect:(CGRect)rect{
+    // 获取处理的上下文
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    //设置线条的样式
+    CGContextSetLineCap(context, kCGLineCapSquare);
+    //设置线条粗细宽度
+    CGContextSetLineWidth(context, 10.0);
+    //设置颜色
+    CGContextSetRGBStrokeColor(context, 1.0, 0, 0, 1.0);
+    //开始一个起始路径
+    CGContextBeginPath(context);
+    //起始点设置为(0,0):注意这是上下文对应区域中的相对坐标，
+    CGContextMoveToPoint(context, 0, 0);
+    //设置下一个坐标点
+    CGContextAddLineToPoint(context, 100, 100);
+    //设置下一个坐标点
+    CGContextAddLineToPoint(context, 0, 150);
+    //设置下一个坐标点
+    CGContextAddLineToPoint(context, 50, 180);
+    //连接上面定义的坐标点
+    CGContextStrokePath(context);
+
+}
+
+
+
+
+
+
+
+@end

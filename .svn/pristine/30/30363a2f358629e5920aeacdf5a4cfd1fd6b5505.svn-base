@@ -1,0 +1,76 @@
+//
+//  MWSearchViewController.m
+//  MyWardrobe
+//
+//  Created by Libo on 17/5/22.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "MWSearchViewController.h"
+#import "MWMacro.h"
+#import "MWSearchTypeView.h"
+
+@interface MWSearchViewController () <MWSearchTypeViewDelegate>
+
+@property (nonatomic, strong) MWSearchTypeView *typeView;
+
+@end
+
+@implementation MWSearchViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    self.view.backgroundColor = [UIColor whiteColor];
+    
+    NSArray *titleArray = @[@"材质:",@"色系:",@"风格:",@"分类:"];
+    for (int i = 0; i < titleArray.count; i++) {
+        MWSearchTypeView *typeView = [MWSearchTypeView typeView];
+        typeView.frame = CGRectMake(0, 50 * i + 44, kScreenW, 50);
+        typeView.title = titleArray[i];
+        typeView.delegate = self;
+        [self.view addSubview:typeView];
+    }
+    
+    // 添加一个向上的轻扫手势
+    UISwipeGestureRecognizer *swipe = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(swipeView:)];
+    swipe.direction = UISwipeGestureRecognizerDirectionDown;
+    [self.view addGestureRecognizer:swipe];
+}
+
+- (void)swipeView:(UISwipeGestureRecognizer *)swipe {
+    [UIView animateWithDuration:0.5 animations:^{
+        self.view.mw_y = kScreenH;
+    }];
+}
+
+- (void)typeViewButtonClicked:(UIButton *)sender {
+    if (self.searchBlock) {
+        self.searchBlock(sender);
+    }
+    [UIView animateWithDuration:0.5 animations:^{
+        self.view.mw_y = kScreenH;
+    }];
+}
+
+
+- (void)dealloc {
+    NSLog(@"%s",__func__);
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+/*
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+}
+*/
+
+@end

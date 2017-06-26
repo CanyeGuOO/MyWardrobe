@@ -1,0 +1,531 @@
+//
+//  MWClothesDisplayViewController.m
+//  MyWardrobe
+//
+//  Created by Libo on 17/5/15.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "MWClothesDisplayViewController.h"
+#import "MWMacro.h"
+#import "MWClothesDisplayCell.h"
+#import <AVFoundation/AVCaptureDevice.h>
+#import <AVFoundation/AVMediaFormat.h>
+#import "MWClothesDispalySqlite.h"
+
+#define kChangelessTag 2017
+#define kInset 10
+#define kCollectionViewRatio 0.59
+#define kBottomButtonH 55
+
+typedef NS_ENUM(NSInteger,CollectionViewState) {
+    CollectionViewStateHide,  // 隐藏
+    CollectionViewStateShow   // 显示
+};
+
+typedef NS_ENUM(NSInteger,CollectionViewFrom) {
+    CollectionViewFromLeft,    // 左边
+    CollectionViewFromBottom   // 底部
+};
+
+@interface MWClothesDisplayViewController () <UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout,UINavigationControllerDelegate,UIImagePickerControllerDelegate>
+// 背景大图片
+@property (nonatomic, strong) UIImageView *backgroundImageView;
+// collectionView
+@property (nonatomic, strong) UICollectionView *collectionView;
+// 这个view装左边的5button
+@property (nonatomic, strong) UIView *leftButtonContainerView;
+// 这个view装底部的2个抽屉button
+@property (nonatomic, strong) UIView *bottomButtonContainerView;
+// 长按cell上的图片时的开始点
+@property (nonatomic, assign) CGPoint beginPoint;
+// collectionView数据源
+@property (nonatomic, strong) NSMutableArray *dataArray;
+// 是否单击过
+@property (nonatomic) BOOL didTap;
+// collectionView的状态，显示和隐藏
+@property (nonatomic, assign) CollectionViewState collectionViewState;
+// collectionView的来源,左边和底部
+@property (nonatomic, assign) CollectionViewFrom collectionViewFrom;
+@end
+
+// 这个标记是为了判断完左边button与移动的图片有重叠之后，就结束判断。否则平移的过程中会不断的判断，图片会一闪一闪
+static BOOL flag = 0;
+
+@implementation MWClothesDisplayViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    
+#warning 数组存放模型的，待改
+    // 从数据库取出数据
+    self.dataArray= [MWClothesDispalySqlite queryImage].mutableCopy;
+    
+    // 如果数据库中没有
+    if (!self.dataArray.count) {
+        for (int i = 0; i < 10; i++) {
+            UIImage *image = [UIImage imageNamed:@"test.jpg"];
+            self.dataArray = @[image,image,image,image,image,image,image,image,image,image].mutableCopy;
+            [MWClothesDispalySqlite saveImage:[UIImage imageNamed:@"test.jpg"]];
+        }
+    } 
+
+    // 添加背景图片
+    [self.view addSubview:self.backgroundImageView];
+    // 添加底部button的容器view
+    [self.view addSubview:self.bottomButtonContainerView];
+    // 添加collectionView
+    [self.view addSubview:self.collectionView];
+    // 添加左边的button容器View
+    [self.view addSubview:self.leftButtonContainerView];
+    
+    // 添加左边的按钮
+    [self addButtons];
+
+    // 注册cell
+    [self.collectionView registerClass:[MWClothesDisplayCell class] forCellWithReuseIdentifier:NSStringFromClass([MWClothesDisplayCell class])];
+    
+}
+
+
+#pragma mark - UICollectionView DataSource
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    return self.dataArray.count;
+}
+
+- (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    
+    MWClothesDisplayCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:NSStringFromClass([MWClothesDisplayCell class]) forIndexPath:indexPath];
+    cell.indexPath = indexPath;
+    cell.image = self.dataArray[indexPath.row];
+    // 实现长按手势block
+    cell.longPressGestureBlock = ^(UILongPressGestureRecognizer *longPress) {
+        [self longPressGestureAction:longPress];
+    };
+    // 单击图片放大全屏
+    cell.tapGestureBlock = ^(UITapGestureRecognizer *tap) {
+        [self tapGestureAction:tap];
+    };
+    
+    return cell;
+}
+
+#pragma mark - UICollectionViewDelegateFlowLayout
+
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumLineSpacingForSectionAtIndex:(NSInteger)section {
+    return self.dataArray.count;
+}
+
+- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
+    return CGSizeMake(kScreenW * kCollectionViewRatio-2*kInset, kScreenW * kCollectionViewRatio-2*kInset);
+}
+
+- (UIEdgeInsets)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout insetForSectionAtIndex:(NSInteger)section {
+    return UIEdgeInsetsMake(kInset, kInset, kInset, kInset);
+}
+
+#pragma mark - UICollectionViewDelegate
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    if (indexPath.row == 0) {
+        [self selectPhoto];
+    }
+}
+
+#pragma mark - 平移手势触发的方法
+
+- (void)longPressGestureAction:(UILongPressGestureRecognizer *)longPress {
+    
+    // 开始状态
+    if (longPress.state == UIGestureRecognizerStateBegan) {
+        
+        self.collectionView.clipsToBounds = NO;
+        
+        // 获取当前触摸点所在的cell
+        MWClothesDisplayCell *cell = (MWClothesDisplayCell *)longPress.view.superview.superview;
+        // 将当前cell置为所有cell的最顶层，目的是为了平移cell上的图片时不会被其余cell盖住
+        [self.collectionView bringSubviewToFront:cell];
+        
+        // 获取开始触摸的点
+        self.beginPoint = [longPress locationInView:longPress.view];
+        
+    }
+    // 移动过程中
+    else if (longPress.state == UIGestureRecognizerStateChanged) {
+        
+        // 当前点
+        CGPoint currentPoint = [longPress locationInView:longPress.view];
+        
+        // x偏移量
+        CGFloat distanceX = currentPoint.x-self.beginPoint.x;
+        // y偏移量
+        CGFloat distanceY = currentPoint.y-self.beginPoint.y;
+        
+        // 让图片跟随触摸点移动
+        CGPoint movePoint = longPress.view.center;
+        movePoint.x += distanceX;
+        movePoint.y += distanceY;
+        longPress.view.center = movePoint;
+        
+        // 缩放图片
+        [self scaleImageView:longPress];
+  
+    }
+    // 平移结束
+    else {
+        
+        flag = 0.0f;
+        
+        if (![self pointInButton:longPress]) {
+            longPress.view.mw_origin = CGPointZero;
+        } else {
+    
+            [UIView animateWithDuration:0.5 animations:^{
+                longPress.view.transform = CGAffineTransformMakeScale(0.01, 0.01);
+            } completion:^(BOOL finished) {
+                MWClothesDisplayCell *cell = (MWClothesDisplayCell *)longPress.view.superview.superview;
+                NSIndexPath *indexPath = [self.collectionView indexPathForCell:cell];
+                // 先删除数据
+                [self.dataArray removeObjectAtIndex:indexPath.row];
+                // 删除cell
+                [self.collectionView deleteItemsAtIndexPaths:@[indexPath]];
+                [longPress.view removeFromSuperview];
+            }];
+        }
+    }
+}
+
+// 缩放移动的图片
+- (void)scaleImageView:(UILongPressGestureRecognizer *)longPress {
+    
+    BOOL isIn = [self pointInButton:longPress];
+    
+    if (isIn && flag == 0) {
+        flag = 1;
+        [UIView animateWithDuration:0.8 animations:^{
+            // 如果中心点包含在button内,让移动的图片开始按照button的size进行缩放
+            longPress.view.transform = CGAffineTransformMakeScale(0.6, 0.6);
+        }];
+    }
+    else if (![self isAccross:longPress]) {
+        [UIView animateWithDuration:0.8 animations:^{
+            // 恢复原图比例
+            longPress.view.transform = CGAffineTransformMakeScale(1, 1);
+        }];
+        flag = 0;
+    }
+}
+
+// 移动的图片中心点是否在某个button上
+- (BOOL)pointInButton:(UILongPressGestureRecognizer *)longPress {
+    for (UIButton *button in self.leftButtonContainerView.subviews) {
+        // 转换坐标系
+        CGPoint clotheImageViewCenterPoint = [longPress.view.superview convertPoint:longPress.view.center toView:button];
+        // 判断移动的图片中心点是否在button上
+        if ([button pointInside:clotheImageViewCenterPoint withEvent:nil]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+//  是否重叠
+- (BOOL)isAccross:(UILongPressGestureRecognizer *)longPress {
+    CGRect clothImageViewRect = [longPress.view convertRect:longPress.view.bounds toView:nil];
+    CGRect leftButtonContainerViewRect = [self.leftButtonContainerView convertRect:self.leftButtonContainerView.bounds toView:nil];
+    if (CGRectIntersectsRect(clothImageViewRect, leftButtonContainerViewRect)) {
+        return YES;
+    } else {
+        return NO;
+    }
+}
+
+#pragma mark - 单击,放大图片
+
+- (void)tapGestureAction:(UITapGestureRecognizer *)tap {
+
+    MWClothesDisplayCell *cell = (MWClothesDisplayCell *)tap.view.superview.superview;
+    [self.collectionView bringSubviewToFront:cell];
+    self.collectionView.clipsToBounds = NO;
+    
+    if (!self.didTap) {
+        [self hideOtherControls:tap];
+        CGRect rectInView = [tap.view convertRect:tap.view.bounds toView:nil];
+        [UIView animateWithDuration:0.5 animations:^{
+            
+            tap.view.transform = CGAffineTransformMakeScale(kScreenW/tap.view.mw_width, kScreenH/tap.view.mw_height);
+            tap.view.mw_x = -rectInView.origin.x;
+            tap.view.mw_y = -rectInView.origin.y;
+            
+        }];
+    } else {
+        
+        [self showOtherControls:tap];
+        [UIView animateWithDuration:0.5 animations:^{
+            tap.view.transform = CGAffineTransformMakeScale(1, 1);
+            tap.view.mw_origin = CGPointZero;
+        }];
+    }
+    
+    self.didTap = !self.didTap;
+}
+
+// 放大时隐藏其余控件
+- (void)hideOtherControls:(UITapGestureRecognizer *)tap {
+    self.leftButtonContainerView.hidden = YES;
+    self.bottomButtonContainerView.hidden = YES;
+    self.collectionView.backgroundColor = [UIColor colorWithWhite:1 alpha:0];
+    for (MWClothesDisplayCell *cell in self.collectionView.visibleCells) {
+        if (cell != tap.view.superview.superview) {
+            cell.hidden = YES;
+        }
+        
+    }
+}
+
+// 恢复图片时显示其余控件
+- (void)showOtherControls:(UITapGestureRecognizer *)tap {
+    self.leftButtonContainerView.hidden = NO;
+    self.bottomButtonContainerView.hidden = NO;
+    self.collectionView.backgroundColor = [UIColor colorWithWhite:1 alpha:1];
+    for (MWClothesDisplayCell *cell in self.collectionView.visibleCells) {
+        cell.hidden = NO;
+    }
+}
+
+#pragma mark - 轻扫
+
+- (void)swipeAction:(UISwipeGestureRecognizer *)swipe {
+    if (self.collectionViewFrom == CollectionViewFromLeft) {
+        [self.view insertSubview:self.collectionView belowSubview:self.leftButtonContainerView];
+        [UIView animateWithDuration:1 animations:^{
+            self.collectionView.mw_x = kScreenW*(1-kCollectionViewRatio)-(kScreenW*kCollectionViewRatio);
+        }];
+        self.collectionViewState = CollectionViewStateHide;
+    }
+}
+
+#pragma mark  - 拍照、相册
+
+- (void)selectPhoto {
+    UIAlertController *alertController = [[UIAlertController alloc]init];
+    UIAlertAction *action0 = [UIAlertAction actionWithTitle:@"拍照" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        UIImagePickerController *picker = [[UIImagePickerController alloc] init];
+        picker.delegate = self;
+        picker.allowsEditing = YES; // 可编辑
+        if ([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
+            picker.sourceType = UIImagePickerControllerSourceTypeCamera;
+            [self presentViewController:picker animated:YES completion:nil];
+        } else {
+            [MBProgressHUD showError:@"没有摄像头"];
+        }
+    
+    }];
+    
+    UIAlertAction *action1 = [UIAlertAction actionWithTitle:@"从相册获取" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        
+        if([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypePhotoLibrary])
+        {
+            UIImagePickerController *imagePicker = [[UIImagePickerController alloc]init];
+            imagePicker.allowsEditing = YES;
+            imagePicker.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+            imagePicker.delegate = self;
+            [self presentViewController:imagePicker animated:YES completion:^{
+            }];
+        } else {
+            MWLog(@"不能打开相册");
+        }
+
+    }];
+    UIAlertAction *action2 = [UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
+    }];
+    [alertController addAction:action0];
+    [alertController addAction:action1];
+    [alertController addAction:action2];
+    [self presentViewController:alertController animated:YES completion:nil];
+}
+
+#pragma mark - UIImagePickerControllerDelegate
+
+// 拍照完成回调
+
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingImage:(UIImage *)image editingInfo:(nullable NSDictionary<NSString *,id> *)editingInfo NS_DEPRECATED_IOS(2_0, 3_0) {
+
+    // 将此图片存入数据库
+    [MWClothesDispalySqlite saveImage:image];
+    [self.dataArray addObject:image];
+    [self.collectionView reloadData];
+
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+// 进入拍摄页面点击取消按钮
+
+- (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+#pragma mark - 左边按钮点击方法
+- (void)leftButtonAction:(UIButton *)sender {
+    [self.view insertSubview:self.collectionView belowSubview:self.leftButtonContainerView];
+    [self.view insertSubview:self.bottomButtonContainerView belowSubview:self.collectionView];
+    if (self.collectionViewState == CollectionViewStateHide) {
+        _collectionView.frame = CGRectMake(kScreenW*(1-kCollectionViewRatio)-(kScreenW*kCollectionViewRatio), 0, kScreenW*kCollectionViewRatio, kScreenH);
+        
+        [UIView animateWithDuration:1 animations:^{
+            self.collectionView.mw_x = kScreenW*(1-kCollectionViewRatio);
+        } completion:^(BOOL finished) {
+            [self.view bringSubviewToFront:self.collectionView];
+        }];
+        self.collectionViewState = CollectionViewStateShow;
+        self.collectionViewFrom = CollectionViewFromLeft;
+    }
+    
+    
+    switch (sender.tag-kChangelessTag) {
+        case 0:
+            MWLog(@"点击了第1个按钮");
+            
+            break;
+        case 1:
+            MWLog(@"点击了第2个按钮");
+            break;
+        case 2:
+            MWLog(@"点击了第3个按钮");
+            break;
+        case 3:
+            MWLog(@"点击了第4个按钮");
+            break;
+        case 4:
+            MWLog(@"点击了第5个按钮");
+            break;
+            
+        default:
+            break;
+    }
+}
+
+#pragma mark - 底部按钮点击方法
+- (void)bottomButtonAction:(UIButton *)sender {
+
+    self.collectionView.clipsToBounds = YES;
+    [self.view insertSubview:self.collectionView belowSubview:self.bottomButtonContainerView];
+    if (self.collectionViewState == CollectionViewStateHide) {
+        self.collectionView.frame = CGRectMake(kScreenW*(1-kCollectionViewRatio), kScreenH-2*kBottomButtonH, kScreenW*kCollectionViewRatio, kScreenH);
+        [self showCollectionViewFromBottom];
+    } else if(self.collectionViewState == CollectionViewStateShow){
+        [self hideCollectionViewToBottom];
+    }
+    
+}
+
+// 从底部弹出collectionView
+- (void)showCollectionViewFromBottom {
+    [UIView animateWithDuration:1 animations:^{
+        self.collectionView.frame = CGRectMake(kScreenW*(1-kCollectionViewRatio), 0, kScreenW*kCollectionViewRatio, kScreenH-2*kBottomButtonH-5);
+    } completion:^(BOOL finished) {
+        [self.view bringSubviewToFront:self.collectionView];
+        [self.view insertSubview:self.bottomButtonContainerView aboveSubview:self.collectionView];
+    }];
+    self.collectionViewState = CollectionViewStateShow;
+    self.collectionViewFrom = CollectionViewFromBottom;
+}
+
+// 隐藏collectionView到底部
+- (void)hideCollectionViewToBottom {
+    [UIView animateWithDuration:1 animations:^{
+        self.collectionView.frame = CGRectMake(kScreenW*(1-kCollectionViewRatio), kScreenH-2*kBottomButtonH, kScreenW*kCollectionViewRatio, kScreenH);
+    } completion:^(BOOL finished) {
+        [self.view insertSubview:self.collectionView belowSubview:self.bottomButtonContainerView];
+    }];
+    self.collectionViewState = CollectionViewStateHide;
+}
+
+#pragma mark - 初始化子控件
+
+- (void)addButtons {
+    for (int i = 0; i < 5; i++) {
+        CGFloat buttonW = kScreenW*(1-kCollectionViewRatio);
+        CGFloat buttonH = kScreenH*0.2;
+        UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+        button.frame = CGRectMake(0, buttonH * i, buttonW, buttonH);
+        [button addTarget:self action:@selector(leftButtonAction:) forControlEvents:UIControlEventTouchUpInside];
+        button.tag = i + kChangelessTag;
+        [self.leftButtonContainerView addSubview:button];
+        button.backgroundColor = MWRandomColor;
+        button.alpha = 0.5;
+    }
+    for (int i = 0; i < 2; i++) {
+        CGFloat buttonW = kScreenW*kCollectionViewRatio;
+        CGFloat buttonH = kBottomButtonH;
+        UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+        button.frame = CGRectMake(0, buttonH * i, buttonW, buttonH);
+        [button addTarget:self action:@selector(bottomButtonAction:) forControlEvents:UIControlEventTouchUpInside];
+        button.tag = i + kChangelessTag;
+        [self.bottomButtonContainerView addSubview:button];
+        button.backgroundColor = MWRandomColor;
+    }
+}
+
+#pragma mark - lazy
+- (UICollectionView *)collectionView {
+    
+    if (!_collectionView) {
+        UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc] init];
+        _collectionView = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:flowLayout];
+        //_collectionView.frame = CGRectMake(kScreenW*(1-kCollectionViewRatio)-(kScreenW*kCollectionViewRatio), 0, kScreenW*kCollectionViewRatio, kScreenH);
+        _collectionView.backgroundColor = [UIColor whiteColor];
+        _collectionView.dataSource = self;
+        _collectionView.delegate = self;
+        
+        UISwipeGestureRecognizer *swipe = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(swipeAction:)];
+        swipe.direction = UISwipeGestureRecognizerDirectionLeft;
+        [_collectionView addGestureRecognizer:swipe];
+     
+    }
+    return _collectionView;
+}
+
+- (UIImageView *)backgroundImageView {
+    
+    if (!_backgroundImageView) {
+        _backgroundImageView = [[UIImageView alloc] init];
+        _backgroundImageView.image = [UIImage imageNamed:@"大衣柜"];
+        _backgroundImageView.frame = self.view.bounds;
+    }
+    return _backgroundImageView;
+}
+
+- (UIView *)leftButtonContainerView {
+    
+    if (!_leftButtonContainerView) {
+        _leftButtonContainerView = [[UIView alloc] init];
+        _leftButtonContainerView.frame = CGRectMake(0, 0, kScreenW*(1-kCollectionViewRatio), kScreenH);
+    }
+    return _leftButtonContainerView;
+}
+
+- (UIView *)bottomButtonContainerView {
+    
+    if (!_bottomButtonContainerView) {
+        _bottomButtonContainerView = [[UIView alloc] init];
+        _bottomButtonContainerView.frame = CGRectMake(kScreenW*(1-kCollectionViewRatio), kScreenH-2*kBottomButtonH, kScreenW*kCollectionViewRatio, 2*kBottomButtonH);
+    }
+    return _bottomButtonContainerView;
+}
+
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
+    self.collectionView.clipsToBounds = YES;
+}
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+
+
+@end

@@ -1,0 +1,67 @@
+//
+//  MWClothesDispalySqlite.m
+//  MyWardrobe
+//
+//  Created by Libo on 17/5/18.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "MWClothesDispalySqlite.h"
+#import "FMDB.h"
+
+@implementation MWClothesDispalySqlite
+
+/** 数据库实例 */
+static FMDatabase *_db;
+
++ (void)initialize
+{
+    // 1.获得数据库文件的路径
+    NSString *doc = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+    NSString *filename = [doc stringByAppendingPathComponent:@"status.sqlite"];
+    
+    // 2.得到数据库
+    _db = [FMDatabase databaseWithPath:filename];
+    
+    // 3.打开数据库
+    if ([_db open]) {
+        // 4.创表
+        BOOL result = [_db executeUpdate:@"CREATE TABLE IF NOT EXISTS clothes_table (id integer PRIMARY KEY AUTOINCREMENT, image blob NOT NULL);"];
+        if (result) {
+            NSLog(@"成功创表");
+        } else {
+            NSLog(@"创表失败");
+        }
+    }
+}
+
+/**
+ *  缓存微博字典数组到数据库中
+ */
++ (void)saveImage:(UIImage *)image {
+    NSData *data = UIImagePNGRepresentation(image);
+    [_db executeUpdate:@"INSERT INTO clothes_table (image) VALUES (?);", data];
+}
+
+
++ (NSArray *)queryImage
+{
+    // 创建数组缓存微博数据
+    NSMutableArray *images = [NSMutableArray array];
+    
+    // 根据请求参数查询数据
+    FMResultSet *resultSet = nil;
+    resultSet = [_db executeQuery:@"SELECT * FROM clothes_table"];
+
+    // 遍历查询结果
+    while (resultSet.next) {
+        NSData *imageData = [resultSet objectForColumnName:@"image"];
+        UIImage *image = [UIImage imageWithData:imageData];
+
+        [images addObject:image];
+    }
+    
+    return images;
+}
+
+@end

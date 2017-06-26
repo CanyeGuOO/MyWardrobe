@@ -1,0 +1,100 @@
+//
+//  WaterViewController.m
+//  MyWardrobe
+//
+//  Created by develop1 on 2017/5/24.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "WaterViewController.h"
+#import "ZWCollectionViewFlowLayout.h"
+#import "ZWCollectionViewCell.h"
+#import "shopModel.h"
+#import "MJExtension.h"
+#import "MWMacro.h"
+#import "CaseView.h"
+
+@interface WaterViewController ()<UICollectionViewDataSource,UICollectionViewDelegate,ZWwaterFlowDelegate>
+@property (nonatomic, strong) UICollectionView * collectView;
+@property (nonatomic, strong) NSMutableArray * shops;
+@property (nonatomic, strong) UIButton *backBtn;
+
+@end
+
+@implementation WaterViewController
+
+-(NSMutableArray *)shops
+{
+    if (_shops==nil) {
+        self.shops = [NSMutableArray array];
+    }
+    return _shops;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    [self.view addSubview:self.backBtn];
+
+    NSArray * shopsArray = [shopModel objectArrayWithFilename:@"1.plist"];
+    [self.shops addObjectsFromArray:shopsArray];
+    NSArray *ssortedArray = [self.dataAry sortedArrayUsingComparator:^NSComparisonResult(CaseView *sticker1, CaseView *sticker2){
+        return [[NSNumber numberWithFloat:sticker1.frame.origin.y] compare:[NSNumber numberWithFloat:sticker2.frame.origin.y]];
+    }];
+
+    [self.dataAry removeAllObjects];
+    self.dataAry = [ssortedArray mutableCopy];
+
+    ZWCollectionViewFlowLayout * layOut = [[ZWCollectionViewFlowLayout alloc] init];
+    layOut.degelate = self;
+    self.collectView = [[UICollectionView alloc] initWithFrame:CGRectMake(25, 60, kScreenW-50, kScreenH-80) collectionViewLayout:layOut];
+    self.collectView.backgroundColor = [UIColor brownColor];
+    self.collectView.delegate = self;
+    self.collectView.dataSource = self;
+    [self.view addSubview:self.collectView];
+    [self.collectView registerNib:[UINib nibWithNibName:@"ZWCollectionViewCell" bundle:nil] forCellWithReuseIdentifier:@"cell"];
+
+}
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
+{
+    return self.dataAry.count;
+}
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
+{
+    ZWCollectionViewCell * cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"cell" forIndexPath:indexPath];
+    cell.backgroundColor = [UIColor redColor];
+    cell.shop = self.shops[indexPath.item];
+    return cell;
+}
+//代理方法
+-(CGFloat)ZWwaterFlow:(ZWCollectionViewFlowLayout *)waterFlow heightForWidth:(CGFloat)width atIndexPath:(NSIndexPath *)indexPach
+{
+    CaseView * caseview = self.dataAry[indexPach.item];
+    return caseview.bounds.size.height/caseview.bounds.size.width*width;
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
+//    NSLog(@"%@",indexPath);
+}
+
+#pragma mark -- 懒加载
+-(UIButton *)backBtn{
+    if (!_backBtn) {
+        _backBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _backBtn.frame = CGRectMake(10, 10, 40, 30);
+        _backBtn.backgroundColor = [UIColor brownColor];
+        [_backBtn setTitle:@"返回" forState:(UIControlStateNormal)];
+        [_backBtn addTarget:self action:@selector(backBtnClick:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _backBtn;
+}
+/// 返回上一页
+- (void)backBtnClick:(UIButton *)sender{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+
+
+
+
+@end

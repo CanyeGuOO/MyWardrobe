@@ -1,0 +1,109 @@
+//
+//  MWClothesDisplayCell.m
+//  MyWardrobe
+//
+//  Created by Libo on 17/5/15.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "MWClothesDisplayCell.h"
+
+#import "MWMacro.h"
+
+@interface MWClothesDisplayCell() <UIGestureRecognizerDelegate>
+@property (nonatomic, strong) UIImageView *clothesImageView;
+@end
+
+@implementation MWClothesDisplayCell
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    if (self = [super initWithFrame:frame]) {
+        
+        self.backgroundColor = [UIColor whiteColor];
+        
+        [self.contentView addSubview:self.clothesImageView];
+    }
+    return self;
+}
+
+- (void)setIndexPath:(NSIndexPath *)indexPath {
+    _indexPath = indexPath;
+    
+    // 添加长按手势
+    UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longPressAction:)];
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapAction:)];
+    
+    if (indexPath.row == 0) {
+        
+        [self.clothesImageView removeGestureRecognizer:longPress];
+        [self.clothesImageView removeGestureRecognizer:tap];
+    } else {
+        
+        longPress.minimumPressDuration = 0.5;
+        [self.clothesImageView addGestureRecognizer:longPress];
+        [self.clothesImageView addGestureRecognizer:tap];
+        
+    }
+}
+
+- (void)setImage:(UIImage *)image {
+    _image = image;
+    if (self.indexPath.row == 0) {
+        self.clothesImageView.image = [UIImage imageNamed:@"添加"];
+    } else {
+        self.clothesImageView.image = image;
+    }
+    
+}
+
+- (void)tapAction:(UITapGestureRecognizer *)tap {
+    if (self.tapGestureBlock) {
+        self.tapGestureBlock(tap);
+    }
+}
+
+- (void)longPressAction:(UILongPressGestureRecognizer *)longPress {
+    if (self.longPressGestureBlock) {
+        self.longPressGestureBlock(longPress);
+    }
+}
+
+
+- (UIImageView *)clothesImageView {
+    
+    if (!_clothesImageView) {
+        _clothesImageView = [[UIImageView alloc] init];
+        _clothesImageView.frame = self.bounds;
+        _clothesImageView.contentMode = UIViewContentModeScaleAspectFit;
+        _clothesImageView.userInteractionEnabled = YES;
+        _clothesImageView.backgroundColor = [UIColor whiteColor];
+    }
+    return _clothesImageView;
+}
+
+// 画矩形
+- (void)drawRect:(CGRect)rect {
+    
+    UIBezierPath *path = [UIBezierPath bezierPathWithRect:rect];
+    CAShapeLayer *layer = [CAShapeLayer layer];
+    layer.frame = self.bounds;
+    layer.path = path.CGPath;
+    layer.lineWidth = 1;
+    layer.fillColor = [UIColor clearColor].CGColor;
+    layer.strokeColor = [UIColor grayColor].CGColor;
+    layer.opacity = 0.5;
+    [self.layer insertSublayer:layer atIndex:0];
+    
+}
+
+
+//- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+//    if ([gestureRecognizer isKindOfClass:[UILongPressGestureRecognizer class]]) {
+//        return NO;
+//    }
+//    return YES;
+//}
+
+@end
+
+

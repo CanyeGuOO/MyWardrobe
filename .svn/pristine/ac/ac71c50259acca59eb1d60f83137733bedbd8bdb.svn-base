@@ -1,0 +1,25 @@
+//
+//  MWSearchTypeView.h
+//  MyWardrobe
+//
+//  Created by Libo on 17/5/22.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@protocol MWSearchTypeViewDelegate <NSObject>
+
+- (void)typeViewButtonClicked:(UIButton *)sender;
+
+@end
+
+@interface MWSearchTypeView : UIView
+
++ (MWSearchTypeView *)typeView;
+
+@property (nonatomic, copy) NSString *title;
+
+@property (nonatomic, weak) id<MWSearchTypeViewDelegate> delegate;
+
+@end

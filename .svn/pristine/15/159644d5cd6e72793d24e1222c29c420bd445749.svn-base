@@ -1,0 +1,526 @@
+//
+//  WardrobeViewController.m
+//  MyWardrobe
+//
+//  Created by develop1 on 2017/5/23.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "WardrobeViewController.h"
+#import "MWMacro.h"
+#import "BorderView.h"
+#import "StickerView.h"
+#import "CaseView.h"
+#import "MBProgressHUD+SP.h"
+#import "WaterViewController.h"
+#import "MWClothesDisplayTestViewController.h"
+
+@interface WardrobeViewController ()
+
+@property (nonatomic, strong) UIScrollView *bgScrollView;
+//@property (nonatomic, strong) UIImageView *bgView;
+@property (nonatomic, strong) UIButton *backBtn;
+
+@property (nonatomic, strong) UIButton *smallCase;
+@property (nonatomic, strong) UIButton *bigCase;
+@property (nonatomic, strong) UIButton *hBtn;
+@property (nonatomic, strong) UIButton *sBtn;
+@property (nonatomic, strong) UIButton *finishBtn;
+@property (nonatomic, strong) UIButton *nextBtn;
+
+@property (nonatomic, strong) NSMutableArray *wardrobeAry;
+@property (nonatomic, strong) NSMutableArray *stickerHAry;
+@property (nonatomic, strong) NSMutableArray *stickerSAry;
+@property (nonatomic, strong) NSMutableArray *caseAry;
+
+
+@property (nonatomic, assign) CGPoint beginPoint;
+@property (nonatomic, assign) CGPoint endPoint;
+@property (nonatomic, assign) CGRect beginRect;
+
+
+@property (nonatomic, assign) NSInteger aLong;
+
+@end
+
+static NSString *order;
+
+@implementation WardrobeViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    order = @"000";
+    _aLong = 0;
+    self.view.backgroundColor = [UIColor whiteColor];
+    self.navigationController.navigationBarHidden = YES;
+    [self.view addSubview:self.bgScrollView];
+    [self.view addSubview:self.backBtn];
+    [self.view addSubview:self.smallCase];
+    [self.view addSubview:self.bigCase];
+    [self.view addSubview:self.hBtn];
+    [self.view addSubview:self.sBtn];
+    [self.view addSubview:self.finishBtn];
+    [self.view addSubview:self.nextBtn];
+    self.wardrobeAry = [@[] mutableCopy];
+    self.stickerHAry = [@[] mutableCopy];
+    self.stickerSAry = [@[] mutableCopy];
+    self.caseAry = [@[] mutableCopy];
+
+}
+
+#pragma  mark --  btnAction
+///添加小空间
+- (void)btnAction:(UIButton *)sender{
+    if (sender.tag == 401) {
+        [self addWardrobe:401];
+    }else if (sender.tag == 402) {
+        [self addWardrobe:402];
+    }else if (sender.tag == 403) {
+        [self addHcase];
+    }else if (sender.tag == 404) {
+        [self addScase];
+    }else if (sender.tag == 405) {
+        [self addSmallWardrobe];
+    }else if (sender.tag == 406) {
+        if (self.caseAry.count != 0) {
+
+            BOOL isFirst = [[NSUserDefaults standardUserDefaults] boolForKey:@"isFirstWardrobe"];
+            NSString *myWardrobeName;
+            if (isFirst) {
+                myWardrobeName = @"clothes1_";
+                [[NSUserDefaults standardUserDefaults] setObject:@"1" forKey:@"myWardrobeName"];
+            }else{
+                NSString *numStr = [[NSUserDefaults standardUserDefaults] objectForKey:@"myWardrobeName"];
+                int i = (int)numStr+1;
+                [[NSUserDefaults standardUserDefaults] setObject:[NSString stringWithFormat:@"%d", i] forKey:@"myWardrobeName"];
+                myWardrobeName = [NSString stringWithFormat:@"clothes%d_", i];
+            }
+            /// 进入自定义衣橱页面
+            MWClothesDisplayTestViewController *asd = [[MWClothesDisplayTestViewController alloc] init];
+            asd.aLong = self.aLong;
+            asd.order = order;
+            asd.myWardrobeName = myWardrobeName;
+            asd.caseAry = self.caseAry;
+            [self.navigationController pushViewController:asd animated:YES];
+
+        }else{
+            [MBProgressHUD showError:@"请先确认完成再进入衣橱!"];
+        }
+
+    }
+}
+#pragma  mark --  添加一个衣橱
+- (void)addWardrobe:(NSInteger)tag{
+    if (tag == 401) {
+        // 小衣橱
+        order = @"210";
+        BorderView *borderView = [self getBorderViewWithFrame:(CGRectMake(_aLong, 0, kScreenW/3, kScreenH-40))];
+        borderView.kWidthBorder = 1;
+        [self.bgScrollView addSubview:borderView];
+        [self.wardrobeAry addObject:borderView];
+        StickerView *stickerView = [self getHcaseViewWithFrame:CGRectMake(_aLong, 10-4, 10, kScreenH-60+8)];
+        stickerView.direction = @(2);
+        stickerView.backgroundColor = [UIColor redColor];
+        [self.bgScrollView addSubview:stickerView];
+        [self.stickerSAry addObject:stickerView];
+        _aLong += kScreenW/3-10;
+
+    }else if (tag == 402) {
+        // 大衣橱
+        order = @"120";
+        BorderView *borderView = [self getBorderViewWithFrame:(CGRectMake(_aLong, 0, kScreenW/3*2, kScreenH-40))];
+        borderView.kWidthBorder = 2;
+        [self.bgScrollView addSubview:borderView];
+        [self.wardrobeAry addObject:borderView];
+        StickerView *stickerView = [self getHcaseViewWithFrame:CGRectMake(_aLong, 10-4, 10, kScreenH-60+8)];
+        stickerView.direction = @(2);
+        stickerView.backgroundColor = [UIColor redColor];
+        [self.bgScrollView addSubview:stickerView];
+        [self.stickerSAry addObject:stickerView];
+        _aLong += kScreenW/3*2-10;
+    }
+    self.bgScrollView.contentSize = CGSizeMake(_aLong+10, self.bgScrollView.frame.size.height);
+}
+#pragma  mark --  添加小横隔板
+- (void)addHcase{
+    StickerView *stickerView = [self getHcaseViewWithFrame:CGRectMake(self.bgScrollView.contentOffset.x+10, 30*(self.stickerHAry.count+1), kScreenW/3-20, 10)];
+    stickerView.direction = @(1);
+    stickerView.backgroundColor = [UIColor greenColor];
+    WEAKSELF
+    stickerView.panHcaseBlock = ^(UIPanGestureRecognizer *panGesture) {
+        [weakSelf moveHcaseWithPanGesture:panGesture];
+    };
+    [self.bgScrollView addSubview:stickerView];
+    [self.stickerHAry addObject:stickerView];
+
+}
+#pragma  mark --  添加小竖隔板
+- (void)addScase{
+    StickerView *stickerView = [self getHcaseViewWithFrame:CGRectMake(self.bgScrollView.contentOffset.x+50, 10, 10, (kScreenW-40)/3-20)];
+    stickerView.direction = @(2);
+    stickerView.backgroundColor = [UIColor greenColor];
+    WEAKSELF
+    stickerView.panHcaseBlock = ^(UIPanGestureRecognizer *panGesture) {
+        [weakSelf moveHcaseWithPanGesture:panGesture];
+    };
+    [self.bgScrollView addSubview:stickerView];
+    [self.stickerSAry addObject:stickerView];
+
+}
+#pragma mark -- 移动小挡板
+- (void)moveHcaseWithPanGesture:(UIPanGestureRecognizer *)panGesture{
+    if (panGesture.state == UIGestureRecognizerStateBegan) {
+        self.beginPoint = [panGesture locationInView:panGesture.view];
+        self.beginRect = panGesture.view.frame;
+    }else if (panGesture.state == UIGestureRecognizerStateChanged) {
+
+        CGPoint currentPoint = [panGesture locationInView:panGesture.view];
+        CGFloat distanceX = currentPoint.x-self.beginPoint.x;
+        CGFloat distanceY = currentPoint.y-self.beginPoint.y;
+
+        CGPoint movePoint = panGesture.view.center;
+        movePoint.x += distanceX;
+        movePoint.y += distanceY;
+        self.endPoint = movePoint;
+        panGesture.view.center = movePoint;
+
+    }else if (panGesture.state == UIGestureRecognizerStateEnded) {
+        StickerView *stiv = (StickerView *)panGesture.view;
+        if ([stiv.direction isEqualToNumber:@(1)]) {
+            CGRect rectt = [self adjustHTheRelationPartitionFrame:self.endPoint];
+            panGesture.view.frame = CGRectMake(rectt.origin.x, self.endPoint.y-5, rectt.size.width, 10);
+
+        }else{
+            CGRect rectt = [self adjustSTheRelationPartitionFrame:self.endPoint];
+            panGesture.view.frame = CGRectMake(self.endPoint.x-5, rectt.origin.y, 10, rectt.size.height);
+
+        }
+        panGesture.view.backgroundColor = [UIColor redColor];
+        [self.bgScrollView bringSubviewToFront:panGesture.view];
+        [self adjustTheRelationPartitionFrame];
+        //        [self addSmallWardrobe];
+    }
+
+}
+/// 调整所有挡板frame
+- (void)adjustTheRelationPartitionFrame{
+    for (StickerView *stiv in self.stickerHAry) {
+        CGRect rectt = [self adjustHTheRelationPartitionFrame:stiv.center];
+        stiv.frame = CGRectMake(rectt.origin.x-4, stiv.center.y-5, rectt.size.width+8, 10);
+    }
+
+    for (StickerView *stiv in self.stickerSAry) {
+        CGRect rectt = [self adjustSTheRelationPartitionFrame:stiv.center];
+        stiv.frame = CGRectMake(stiv.center.x-5, rectt.origin.y-4, 10, rectt.size.height+8);
+    }
+}
+#pragma mark -- 调整横隔板frame
+- (CGRect)adjustHTheRelationPartitionFrame:(CGPoint )point{
+    NSMutableArray *ary = [@[] mutableCopy];
+    NSMutableArray *smallAry = [@[] mutableCopy];
+    NSMutableArray *bigAry = [@[] mutableCopy];
+    for (StickerView *sticker in self.stickerSAry) {
+        if (sticker.frame.origin.y <= point.y && CGRectGetMaxY(sticker.frame) >= point.y) {
+            [ary addObject:sticker];
+        }
+    }
+    for (StickerView *st in ary) {
+        if (st.center.x > point.x) {
+            [bigAry addObject:st];
+        }else{
+            [smallAry addObject:st];
+        }
+    }
+
+    NSArray *newBigAry = [bigAry sortedArrayUsingComparator:^NSComparisonResult(StickerView *st1, StickerView *st2) {
+        return [[NSNumber numberWithFloat:st1.center.x] compare:[NSNumber numberWithFloat:st2.center.x]];
+    }];
+    NSArray *newSmallAry = [smallAry sortedArrayUsingComparator:^NSComparisonResult(StickerView *st1, StickerView *st2) {
+        return [[NSNumber numberWithFloat:st1.center.x] compare:[NSNumber numberWithFloat:st2.center.x]];
+    }];
+    CGRect rect1,rect2;
+    if (newBigAry.count == 0) {
+        rect1 = CGRectMake(_aLong, 10, 10, kScreenH-60);
+    }else{
+        rect1 = [newBigAry[0] frame];
+    }
+    if (newSmallAry.count == 0) {
+        rect2 = CGRectMake(0, 10, 10, kScreenH-60);
+    }else{
+        rect2 = [[newSmallAry lastObject] frame];
+    }
+
+    CGRect rect = CGRectMake(CGRectGetMaxX(rect2), 0, rect1.origin.x-CGRectGetMaxX(rect2), 10);
+    return rect;
+}
+
+
+#pragma mark -- 调整竖隔板frame
+- (CGRect)adjustSTheRelationPartitionFrame:(CGPoint )point{
+    NSMutableArray *ary = [@[] mutableCopy];
+    NSMutableArray *smallAry = [@[] mutableCopy];
+    NSMutableArray *bigAry = [@[] mutableCopy];
+    for (StickerView *sticker in self.stickerHAry) {
+        if (sticker.frame.origin.x < point.x && CGRectGetMaxX(sticker.frame)> point.x) {
+            [ary addObject:sticker];
+        }
+    }
+    for (StickerView *st in ary) {
+        if (st.center.y > point.y) {
+            [bigAry addObject:st];
+        }else{
+            [smallAry addObject:st];
+        }
+    }
+
+    NSArray *newBigAry = [bigAry sortedArrayUsingComparator:^NSComparisonResult(StickerView *st1, StickerView *st2) {
+        return [[NSNumber numberWithFloat:st1.center.y] compare:[NSNumber numberWithFloat:st2.center.y]];
+    }];
+    NSArray *newSmallAry = [smallAry sortedArrayUsingComparator:^NSComparisonResult(StickerView *st1, StickerView *st2) {
+        return [[NSNumber numberWithFloat:st1.center.y] compare:[NSNumber numberWithFloat:st2.center.y]];
+    }];
+    CGRect rect1,rect2;
+    if (newBigAry.count == 0) {
+        rect1 = CGRectMake(10, kScreenH-50, _aLong-10, 10);
+    }else{
+        rect1 = [newBigAry[0] frame];
+    }
+    if (newSmallAry.count == 0) {
+        rect2 = CGRectMake(10, 0, _aLong-10, 10);
+    }else{
+        rect2 = [[newSmallAry lastObject] frame];
+    }
+
+    CGRect rect = CGRectMake(0, CGRectGetMaxY(rect2), 10, rect1.origin.y-CGRectGetMaxY(rect2));
+    return rect;
+}
+
+
+
+#pragma  mark --  添加小橱窗
+- (void)addSmallWardrobe{
+    StickerView *stickerH0 = [self getHcaseViewWithFrame:CGRectMake(10-4, 0, _aLong-2, 10)];
+    stickerH0.direction = @(1);
+    StickerView *stickerH1 = [self getHcaseViewWithFrame:CGRectMake(10-4, self.bgScrollView.bounds.size.height-10, _aLong-2, 10)];
+    stickerH1.direction = @(1);
+    [self.stickerHAry insertObject:stickerH0 atIndex:0];
+    [self.stickerHAry addObject:stickerH1];
+
+    StickerView *sticker1 = [self getHcaseViewWithFrame:CGRectMake(_aLong, 10-4, 10, self.bgScrollView.bounds.size.height-20+8)];
+    sticker1.direction = @(2);
+    [self.stickerSAry addObject:sticker1];
+
+    NSArray *newSAry = [self.stickerSAry sortedArrayUsingComparator:^NSComparisonResult(StickerView *stickerView1, StickerView *stickerView2) {
+        return [[NSNumber numberWithFloat:stickerView1.center.x] compare:[NSNumber numberWithFloat:stickerView2.center.x]];
+    }];
+    self.stickerSAry = [newSAry mutableCopy];
+
+    // 每次更新先移除小橱窗
+    [self.caseAry removeAllObjects];
+    for (id obj in self.bgScrollView.subviews) {
+        if ([obj isKindOfClass:[CaseView class]]) {
+            [obj removeFromSuperview];
+        }
+    }
+
+
+    // 遍历每条竖线得到包含边
+    for (int j = 0; j < self.stickerSAry.count-1; j++) {
+        // 竖线
+        StickerView *stView = self.stickerSAry[j];
+        CGFloat w = kScreenW, h = kScreenH,  y = 0;
+        NSMutableArray *hsCase = [@[] mutableCopy];
+        for (StickerView *htView in self.stickerHAry) {
+            if (htView.frame.origin.x <= CGRectGetMaxX(stView.frame) && CGRectGetMaxX(htView.frame) > CGRectGetMaxX(stView.frame) && htView.frame.origin.y >= stView.frame.origin.y-10 && htView.frame.origin.y <= CGRectGetMaxY(stView.frame)) {
+                [hsCase addObject:htView];
+            }
+        }
+        NSArray *newHsCase = [hsCase sortedArrayUsingComparator:^NSComparisonResult(StickerView *stickerView1, StickerView *stickerView2) {
+            return [[NSNumber numberWithFloat:stickerView1.center.y] compare:[NSNumber numberWithFloat:stickerView2.center.y]];
+        }];
+        CGRect rect1 = CGRectZero;
+        CGRect rect2 = CGRectZero;
+        if (newHsCase.count > 1) {
+            for (int i = 0; i < newHsCase.count-1; i++) {
+                rect1 = [newHsCase[i] frame];
+                rect2 = [newHsCase[i+1] frame];
+                y = rect1.origin.y+10;
+                h = rect2.origin.y - y;
+                // 小横
+                StickerView *tkView = (StickerView *)newHsCase[i];
+                NSMutableArray *downAry = [@[] mutableCopy];
+                // 竖直穿入
+                for (StickerView *ttView in self.stickerSAry) {
+                    if (CGRectIntersectsRect(ttView.frame, tkView.frame) && ttView.center.x > stView.center.x && CGRectGetMaxY(ttView.frame) > tkView.center.y) {
+                            [downAry addObject:ttView];
+                    }
+                }
+                // 取上行时取下穿
+                NSArray *newDownAry = [downAry sortedArrayUsingComparator:^NSComparisonResult(StickerView *stickerView1, StickerView *stickerView2) {
+                    return [[NSNumber numberWithFloat:stickerView1.center.x] compare:[NSNumber numberWithFloat:stickerView2.center.x]];
+                }];
+                CGPoint downR = [[newDownAry firstObject] center];
+                w = downR.x - stView.center.x-10;
+                // 添加小橱窗
+                CaseView *caseView = [[CaseView alloc] initWithFrame:CGRectMake(stView.frame.origin.x+10, y, w, h)];
+                caseView.tag = 1001+j*10 +i;
+                WEAKSELF
+                caseView.tapCaseViewBlock = ^(UITapGestureRecognizer *tapGesture) {
+                    [weakSelf tapCaseView:tapGesture];
+                };
+                [self.bgScrollView insertSubview:caseView atIndex:2];
+                [self.bgScrollView addSubview:caseView];
+                [self.caseAry addObject:caseView];
+            }
+        }else{
+            NSLog(@"UGUGUGUGUGUGUUGUGUGUGUGUG");
+        }
+    }
+
+    [self.stickerHAry removeObject: stickerH0];
+    [self.stickerHAry removeObject:stickerH1];
+    [self.stickerSAry removeObject:sticker1];
+}
+
+
+#pragma  mark --  生成外边框
+- (BorderView *)getBorderViewWithFrame:(CGRect)rect{
+    BorderView *borderView = [[BorderView alloc] initWithFrame:rect];
+    borderView.backgroundColor = [UIColor brownColor];
+    return borderView;
+}
+#pragma  mark --  生成小格线
+- (StickerView *)getHcaseViewWithFrame:(CGRect)rect{
+    StickerView *stickerView = [[StickerView alloc] initWithFrame:rect];
+    return stickerView;
+}
+#pragma  mark --  生成小橱窗
+- (CaseView *)getcaseViewWithFrame:(CGRect)rect{
+    CaseView *caseView = [[CaseView alloc] initWithFrame:rect];
+    return caseView;
+}
+
+
+
+#pragma mark -- 点击小橱窗
+- (void)tapCaseView:(UITapGestureRecognizer *)tap{
+    [MBProgressHUD showSuccess:[NSString stringWithFormat:@"我是%ld", (long)tap.view.tag]];
+}
+#pragma  mark --  返回上一页
+- (void)backBtnAction{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+#pragma mark -- 懒加载
+- (UIScrollView *)bgScrollView{
+    if (!_bgScrollView) {
+        _bgScrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 40, kScreenW, kScreenH-40)];
+        _bgScrollView.contentSize = _bgScrollView.bounds.size;
+//        _bgScrollView.backgroundColor = [UIColor brownColor];
+    }
+    return _bgScrollView;
+}
+//- (UIImageView *)bgView{
+//    if (!_bgView) {
+//        _bgView = [[UIImageView alloc] initWithFrame:(CGRectMake(25, 60, kScreenW-50, kScreenH-80))];
+//        _bgView.userInteractionEnabled = YES;
+//        _bgView.clipsToBounds = YES;
+//        _bgView.backgroundColor = [UIColor brownColor];
+//    }
+//    return _bgView;
+//}
+-(UIButton *)backBtn{
+    if (!_backBtn) {
+        _backBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _backBtn.frame = CGRectMake(10, 10, 40, 30);
+        _backBtn.backgroundColor = [UIColor brownColor];
+        [_backBtn setTitle:@"返回" forState:(UIControlStateNormal)];
+        [_backBtn addTarget:self action:@selector(backBtnAction) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _backBtn;
+}
+
+-(UIButton *)smallCase{
+    if (!_smallCase) {
+        _smallCase=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _smallCase.frame = CGRectMake(60, 10, 40, 30);
+        _smallCase.tag = 401;
+        _smallCase.backgroundColor = [UIColor brownColor];
+        [_smallCase setTitle:@"小框" forState:(UIControlStateNormal)];
+        [_smallCase addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _smallCase;
+}
+-(UIButton *)bigCase{
+    if (!_bigCase) {
+        _bigCase=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _bigCase.frame = CGRectMake(110, 10, 40, 30);
+        _bigCase.tag = 402;
+        _bigCase.backgroundColor = [UIColor brownColor];
+        [_bigCase setTitle:@"大框" forState:(UIControlStateNormal)];
+        [_bigCase addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _bigCase;
+}
+
+-(UIButton *)hBtn{
+    if (!_hBtn) {
+        _hBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _hBtn.frame = CGRectMake(160, 10, 40, 30);
+        _hBtn.tag = 403;
+        _hBtn.backgroundColor = [UIColor brownColor];
+        [_hBtn setTitle:@"横平" forState:(UIControlStateNormal)];
+        [_hBtn addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _hBtn;
+}
+-(UIButton *)sBtn{
+    if (!_sBtn) {
+        _sBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _sBtn.frame = CGRectMake(210, 10, 40, 30);
+        _sBtn.tag = 404;
+        _sBtn.backgroundColor = [UIColor brownColor];
+        [_sBtn setTitle:@"竖直" forState:(UIControlStateNormal)];
+        [_sBtn addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _sBtn;
+}
+-(UIButton *)finishBtn{
+    if (!_finishBtn) {
+        _finishBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _finishBtn.frame = CGRectMake(260, 10, 40, 30);
+        _finishBtn.tag = 405;
+        _finishBtn.backgroundColor = [UIColor brownColor];
+        [_finishBtn setTitle:@"完成" forState:(UIControlStateNormal)];
+        [_finishBtn addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _finishBtn;
+}
+-(UIButton *)nextBtn{
+    if (!_nextBtn) {
+        _nextBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _nextBtn.frame = CGRectMake(310, 10, 40, 30);
+        _nextBtn.tag = 406;
+        _nextBtn.backgroundColor = [UIColor brownColor];
+        [_nextBtn setTitle:@"NEXT" forState:(UIControlStateNormal)];
+        [_nextBtn addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _nextBtn;
+}
+
+#pragma mark --  内存警告
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+/*
+ #pragma mark - Navigation
+
+ // In a storyboard-based application, you will often want to do a little preparation before navigation
+ - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+ // Get the new view controller using [segue destinationViewController].
+ // Pass the selected object to the new view controller.
+ }
+ */
+
+@end

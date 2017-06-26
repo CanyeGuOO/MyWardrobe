@@ -1,0 +1,118 @@
+//
+//  MWClothesDisplayCell.m
+//  MyWardrobe
+//
+//  Created by Libo on 17/5/15.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "MWClothesDisplayCell.h"
+
+#import "MWMacro.h"
+
+@interface MWClothesDisplayCell() <UIGestureRecognizerDelegate>
+@property (nonatomic, strong) UIImageView *clothesImageView;
+@property (nonatomic, strong) UILongPressGestureRecognizer *longPress;
+@property (nonatomic, strong) UITapGestureRecognizer *tap;
+
+@end
+
+@implementation MWClothesDisplayCell
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    if (self = [super initWithFrame:frame]) {
+        
+        self.backgroundColor = [UIColor whiteColor];
+        
+        [self.contentView addSubview:self.clothesImageView];
+        
+        // 添加长按手势
+        UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longPressAction:)];
+        longPress.minimumPressDuration = 0.5;
+        self.longPress = longPress;
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapAction:)];
+        self.tap = tap;
+    }
+    return self;
+}
+
+- (void)setIndexPath:(NSIndexPath *)indexPath {
+    _indexPath = indexPath;
+
+     // 手势和控件不一样，控件如果添加多次到父视图，父视图只会添加一次，而手势添加几次，父视图就接受几次
+    if (indexPath.row == 0) {
+        self.clothesImageView.image = [UIImage imageNamed:@"添加"];
+        [self.clothesImageView removeGestureRecognizer:self.longPress];
+        [self.clothesImageView removeGestureRecognizer:self.tap];
+    } else {
+
+        [self.clothesImageView addGestureRecognizer:self.longPress];
+        [self.clothesImageView addGestureRecognizer:self.tap];
+        
+    }
+}
+
+- (void)setImage:(UIImage *)image {
+    _image = image;
+
+    self.clothesImageView.image = image;
+    self.clothesImageView.transform = CGAffineTransformMakeScale(1, 1);
+    self.clothesImageView.mw_origin = CGPointZero;
+}
+
+- (void)tapAction:(UITapGestureRecognizer *)tap {
+    if (self.tapGestureBlock) {
+        self.tapGestureBlock(tap);
+    }
+}
+
+- (void)longPressAction:(UILongPressGestureRecognizer *)longPress {
+    if (self.longPressGestureBlock) {
+        self.longPressGestureBlock(longPress);
+    }
+}
+
+
+- (UIImageView *)clothesImageView {
+    
+    if (!_clothesImageView) {
+        _clothesImageView = [[UIImageView alloc] init];
+        _clothesImageView.frame = self.bounds;
+        _clothesImageView.contentMode = UIViewContentModeScaleAspectFit;
+        _clothesImageView.userInteractionEnabled = YES;
+        _clothesImageView.backgroundColor = [UIColor whiteColor];
+    }
+    return _clothesImageView;
+}
+
+// 画矩形
+- (void)drawRect:(CGRect)rect {
+    
+    UIBezierPath *path = [UIBezierPath bezierPathWithRect:rect];
+    CAShapeLayer *layer = [CAShapeLayer layer];
+    layer.frame = self.bounds;
+    layer.path = path.CGPath;
+    layer.lineWidth = 1;
+    layer.fillColor = [UIColor clearColor].CGColor;
+    layer.strokeColor = [UIColor grayColor].CGColor;
+    layer.opacity = 0.5;
+    [self.layer insertSublayer:layer atIndex:0];
+    
+}
+
+// 重写这个方法的作用是让self.clothesImageView放大后超出父控件依然能点击
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    UIView *view = [super hitTest:point withEvent:event];
+    if (view == nil) {
+        CGPoint tempoint = [self.clothesImageView convertPoint:point fromView:self];
+        if (CGRectContainsPoint(self.clothesImageView.bounds, tempoint))
+        {
+            view = self.clothesImageView;
+        }
+    }
+    return view;
+}
+
+@end
+
+

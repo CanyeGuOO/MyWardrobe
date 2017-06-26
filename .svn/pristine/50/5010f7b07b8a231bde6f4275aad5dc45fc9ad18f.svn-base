@@ -1,0 +1,32 @@
+//
+//  MWClothesDisplayTestViewController.h
+//  MyWardrobe
+//
+//  Created by Libo on 17/6/1.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "MWBasicViewController.h"
+
+@interface MWClothesDisplayTestViewController : MWBasicViewController
+
+@property (nonatomic, strong) NSMutableArray *caseAry;
+@property (nonatomic, copy) NSString *order;
+
+@end
+
+@interface MWWardrobeButton : UIButton
+
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+
+@end
+
+@interface MWDraverButton : UIButton
+
+// 标记该按钮有没有刷新过collectionView
+@property (nonatomic, assign, getter=isReloadata) BOOL reloadData;
+
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+@end

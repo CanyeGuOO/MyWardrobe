@@ -1,0 +1,22 @@
+//
+//  CaseView.m
+//  MyWardrobe
+//
+//  Created by develop1 on 2017/5/23.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "CaseView.h"
+
+@implementation CaseView
+
+- (id)initWithFrame:(CGRect)frame{
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.backgroundColor = [UIColor greenColor];
+        self.userInteractionEnabled = YES;
+    }
+    return self;
+}
+
+@end

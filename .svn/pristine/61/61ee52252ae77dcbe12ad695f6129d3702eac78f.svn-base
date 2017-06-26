@@ -1,0 +1,286 @@
+//
+//  WardrobeViewController.m
+//  MyWardrobe
+//
+//  Created by develop1 on 2017/5/23.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//
+
+#import "WardrobeViewController.h"
+#import "MWMacro.h"
+#import "BorderView.h"
+#import "StickerView.h"
+#import "CaseView.h"
+
+@interface WardrobeViewController ()
+
+@property (nonatomic, strong) UIImageView *bgView;
+@property (nonatomic, strong) UIButton *backBtn;
+
+@property (nonatomic, strong) UIButton *smallCase;
+@property (nonatomic, strong) UIButton *bigCase;
+@property (nonatomic, strong) UIButton *hBtn;
+@property (nonatomic, strong) UIButton *sBtn;
+@property (nonatomic, strong) UIButton *finishBtn;
+
+@property (nonatomic, strong) NSMutableArray *hCaseAry;
+@property (nonatomic, strong) NSMutableArray *wardrobeAry;
+@property (nonatomic, strong) NSMutableArray *stickerAry;
+@property (nonatomic, strong) NSMutableArray *caseAry;
+
+@property (nonatomic, assign) NSInteger aLong;
+
+@end
+
+@implementation WardrobeViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor whiteColor];
+    self.navigationController.navigationBarHidden = YES;
+    [self.view addSubview:self.bgView];
+    [self.view addSubview:self.backBtn];
+    [self.view addSubview:self.smallCase];
+    [self.view addSubview:self.bigCase];
+    [self.view addSubview:self.hBtn];
+    [self.view addSubview:self.sBtn];
+    [self.view addSubview:self.finishBtn];
+    self.hCaseAry = [@[] mutableCopy];
+    self.wardrobeAry = [@[] mutableCopy];
+    self.stickerAry = [@[] mutableCopy];
+    self.caseAry = [@[] mutableCopy];
+
+}
+
+#pragma  mark --  btnAction
+///添加小空间
+- (void)btnAction:(UIButton *)sender{
+    if (sender.tag == 401) {
+        [self addWardrobe:401];
+    }else if (sender.tag == 402) {
+        [self addWardrobe:402];
+    }else if (sender.tag == 403) {
+        [self addHcase];
+    }else if (sender.tag == 404) {
+
+    }else if (sender.tag == 405) {
+
+    }
+}
+/// 添加一个衣橱
+- (void)addWardrobe:(NSInteger)tag{
+    if (tag == 401) {
+        // 小衣橱
+        if (self.wardrobeAry.count == 0) {
+            _aLong = (kScreenW-40)/3;
+            BorderView *borderView = [self getBorderViewWithFrame:(CGRectMake(0, 0, (kScreenW-40)/3, kScreenH-80))];
+            [self.bgView addSubview:borderView];
+            [self.wardrobeAry addObject:borderView];
+        }else{
+            BorderView *borderView = [self getBorderViewWithFrame:(CGRectMake(_aLong-10, 0, (kScreenW-40)/3*2, kScreenH-80))];
+            [self.bgView addSubview:borderView];
+            _aLong += (kScreenW-40)/3;
+            [self.wardrobeAry addObject:borderView];
+        }
+    }else if (tag == 402) {
+        // 大衣橱
+        if (self.wardrobeAry.count == 0) {
+            _aLong = (kScreenW-40)/3*2;
+            BorderView *borderView = [self getBorderViewWithFrame:(CGRectMake(0, 0, (kScreenW-40)/3*2, kScreenH-80))];
+            [self.bgView addSubview:borderView];
+            [self.wardrobeAry addObject:borderView];
+        }else{
+            BorderView *borderView = [self getBorderViewWithFrame:(CGRectMake(_aLong-10, 0, (kScreenW-40)/3*2, kScreenH-80))];
+            [self.bgView addSubview:borderView];
+            _aLong += (kScreenW-40)/3*2;
+            [self.wardrobeAry addObject:borderView];
+        }
+    }
+}
+/// 添加小隔板
+- (void)addHcase{
+    StickerView *stickerView = [self getHcaseViewWithFrame:CGRectMake(10, (kScreenW-40)/3, (kScreenW-40)/3-20, 10)];
+    WEAKSELF
+    stickerView.panHcaseBlock = ^(UIPanGestureRecognizer *panGesture) {
+        [weakSelf moveHcaseWithPanGesture:panGesture];
+    };
+    [self.bgView addSubview:stickerView];
+    [self.stickerAry addObject:stickerView];
+
+}
+/// 生成外边框
+- (BorderView *)getBorderViewWithFrame:(CGRect)rect{
+    BorderView *borderView = [[BorderView alloc] initWithFrame:rect];
+    return borderView;
+}
+/// 生成小横线
+- (StickerView *)getHcaseViewWithFrame:(CGRect)rect{
+    StickerView *stickerView = [[StickerView alloc] initWithFrame:rect];
+    return stickerView;
+}
+/// 生成小橱窗
+- (CaseView *)getcaseViewWithFrame:(CGRect)rect{
+    CaseView *caseView = [[CaseView alloc] initWithFrame:rect];
+    return caseView;
+}
+#pragma mark -- 移动小横版
+- (void)moveHcaseWithPanGesture:(UIPanGestureRecognizer *)panGesture{
+    if (panGesture.state == UIGestureRecognizerStateBegan) {
+
+    }else if (panGesture.state == UIGestureRecognizerStateChanged) {
+
+    }else if (panGesture.state == UIGestureRecognizerStateEnded) {
+        
+    }
+
+}
+
+
+
+
+/// 返回上一页
+- (void)backBtnAction{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+#pragma mark -- 懒加载
+- (UIImageView *)bgView{
+    if (!_bgView) {
+        _bgView = [[UIImageView alloc] initWithFrame:(CGRectMake(20, 60, kScreenW-50, kScreenH-80))];
+        _bgView.userInteractionEnabled = YES;
+        _bgView.backgroundColor = [UIColor brownColor];
+    }
+    return _bgView;
+}
+-(UIButton *)backBtn{
+    if (!_backBtn) {
+        _backBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _backBtn.frame = CGRectMake(10, 10, 40, 30);
+        _backBtn.backgroundColor = [UIColor brownColor];
+        [_backBtn setTitle:@"返回" forState:(UIControlStateNormal)];
+        [_backBtn addTarget:self action:@selector(backBtnAction) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _backBtn;
+}
+
+-(UIButton *)smallCase{
+    if (!_smallCase) {
+        _smallCase=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _smallCase.frame = CGRectMake(60, 10, 40, 30);
+        _smallCase.tag = 401;
+        _smallCase.backgroundColor = [UIColor brownColor];
+        [_smallCase setTitle:@"小框" forState:(UIControlStateNormal)];
+        [_smallCase addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _smallCase;
+}
+-(UIButton *)bigCase{
+    if (!_bigCase) {
+        _bigCase=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _bigCase.frame = CGRectMake(110, 10, 40, 30);
+        _bigCase.tag = 402;
+        _bigCase.backgroundColor = [UIColor brownColor];
+        [_bigCase setTitle:@"大框" forState:(UIControlStateNormal)];
+        [_bigCase addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _bigCase;
+}
+
+-(UIButton *)hBtn{
+    if (!_hBtn) {
+        _hBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _hBtn.frame = CGRectMake(160, 10, 40, 30);
+        _hBtn.tag = 403;
+        _hBtn.backgroundColor = [UIColor brownColor];
+        [_hBtn setTitle:@"横平" forState:(UIControlStateNormal)];
+        [_hBtn addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _hBtn;
+}
+-(UIButton *)sBtn{
+    if (!_sBtn) {
+        _sBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _sBtn.frame = CGRectMake(210, 10, 40, 30);
+        _sBtn.tag = 404;
+        _sBtn.backgroundColor = [UIColor brownColor];
+        [_sBtn setTitle:@"竖直" forState:(UIControlStateNormal)];
+        [_sBtn addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _sBtn;
+}
+-(UIButton *)finishBtn{
+    if (!_finishBtn) {
+        _finishBtn=[UIButton buttonWithType:(UIButtonTypeCustom)];
+        _finishBtn.frame = CGRectMake(260, 10, 40, 30);
+        _finishBtn.tag = 405;
+        _finishBtn.backgroundColor = [UIColor brownColor];
+        [_finishBtn setTitle:@"完成" forState:(UIControlStateNormal)];
+        [_finishBtn addTarget:self action:@selector(btnAction:) forControlEvents:(UIControlEventTouchUpInside)];
+    }
+    return _finishBtn;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#pragma mark --
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+/*
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+}
+*/
+
+@end

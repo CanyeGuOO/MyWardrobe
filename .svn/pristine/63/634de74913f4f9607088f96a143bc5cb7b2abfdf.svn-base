@@ -1,0 +1,23 @@
+//
+//  MWClothesDisplayViewController.h
+//  MyWardrobe
+//
+//  Created by Libo on 17/5/15.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//  服装展示控制器
+
+#import "MWBasicViewController.h"
+
+@interface MWClothesDisplayViewController : MWBasicViewController
+
+@end
+
+
+@interface MWDraverButton : UIButton
+
+// 记录是哪个button弹出来的
+@property (nonatomic, assign, getter=isMeShow) BOOL meShow;
+// 标记该按钮有没有刷新过collectionView
+@property (nonatomic, assign, getter=isReloadata) BOOL reloadData;
+
+@end

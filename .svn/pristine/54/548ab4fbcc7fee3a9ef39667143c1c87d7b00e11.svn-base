@@ -1,0 +1,22 @@
+//
+//  MWClothesDispalySqlite.h
+//  MyWardrobe
+//
+//  Created by Libo on 17/5/18.
+//  Copyright © 2017年 残夜孤鸥. All rights reserved.
+//  数据库
+
+#import <UIKit/UIKit.h>
+
+@interface MWClothesDispalySqlite : NSObject
+
+// 保存
++ (void)saveImage:(UIImage *)image;
+
+// 查询
++ (NSArray *)queryImage;
+
+// 删除
++ (void)deleteImage:(UIImage *)image;
+
+@end
